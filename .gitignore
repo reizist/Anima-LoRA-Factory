@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+data/training_history.json
+backend/dataset_config.toml
+backend/sd-scripts/*.egg-info/

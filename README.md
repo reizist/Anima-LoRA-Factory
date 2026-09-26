@@ -22,8 +22,8 @@ Anima LoRA Factory は、次世代画像生成モデル Anima の LoRA 学習を
 
 ### ✅全自動環境構築 / Auto Setup
 
-start.bat を実行するだけで、必要な学習エンジン (sd-scripts) やハードウェアに最適な PyTorch を自動的にセットアップします。<br>
-Just run `start.bat` to automatically set up the required training engine (`sd-scripts`) and the best PyTorch version for your hardware.
+Windows は `start.bat`、Ubuntu / macOS は `./start.sh` を実行するだけで、必要な学習エンジン (sd-scripts) と OS / GPU に合った PyTorch を自動的にセットアップします。<br>
+Run `start.bat` on Windows or `./start.sh` on Ubuntu/macOS to set up the training engine and a suitable PyTorch build automatically.
 
 ### ✅ビジュアルタグエディタ / Visual Tag Editor
 
@@ -58,11 +58,16 @@ After training completes, the LoRA is automatically converted and exported into 
 ---
 
 ## 📋 動作要件 / Requirements
-- Windows 10 / 11 64bit
-- NVIDIA GPU
-- Python 3.10
-  - Recommended: Python 3.10.6 64bit  
-  https://www.python.org/downloads/release/python-3106/
+
+- Python 3.10 / 3.11 / 3.12 (64-bit; 3.10 recommended)
+- 次のいずれか / One of:
+  - Ubuntu 22.04 以降 + NVIDIA GPU + 最新の NVIDIA ドライバー
+  - Windows 10 / 11 64-bit + NVIDIA GPU
+  - Apple Silicon Mac + PyTorch MPS 対応 macOS（実験的対応）
+
+CPU のみでの学習は非常に遅いため、誤操作防止のため開始しません。macOS 版は Apple Metal (MPS) を使いますが、CUDA 版よりメモリ制約が厳しく、sd-scripts 側の未対応 MPS 演算に遭遇する場合があります。PyTorch の [MPS バックエンド](https://docs.pytorch.org/docs/stable/notes/mps.html) も参照してください。
+
+Python 3.10〜3.12 が見つからない場合、[`uv`](https://docs.astral.sh/uv/) がインストール済みなら `start.sh` が Python 3.12 を自動用意します。
 
 ### 🔧 必要モデル / Required Models
 
@@ -80,16 +85,36 @@ After training completes, the LoRA is automatically converted and exported into 
   - https://huggingface.co/circlestone-labs/Anima/blob/main/split_files/vae/qwen_image_vae.safetensors
 
 ## 🚀 使い方
-1. ダウンロード: Anima-LoRA-Factory-v*.zipをダウンロードして解凍してください。
-1. 起動: フォルダ内の start.bat をダブルクリックします。
-1. 初期設定: 黒い画面（コマンドプロンプト）で環境構築が始まります。完了すると自動的にブラウザで GUI が開きます。
-1. 学習開始: 画像フォルダを指定し、必要に応じてタグを編集します。Anima Base Model, VAE, Qwen3 のパスを指定します。「LoRA学習開始」ボタンを押せばトレーニングが始まります！
+
+### Ubuntu
+
+```bash
+sudo apt update
+sudo apt install python3-venv python3-tk
+chmod +x start.sh
+./start.sh
+```
+
+NVIDIA ドライバーが認識されていることは `nvidia-smi` で確認できます。ブラウザを自動で開かないサーバーでは `NO_BROWSER=1 ./start.sh` とし、表示された URL を開いてください。サーバーは安全のため初期値で localhost のみに待ち受けます。LAN からの利用を明示的に許可する場合のみ `APP_HOST=0.0.0.0 ./start.sh` を使い、ファイアウォールでポートを制限してください。
+
+### macOS
+
+Command Line Tools と Python 3.10〜3.12 を用意し、Terminal で次を実行します。
+
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+### Windows
+
+`start.bat` をダブルクリックします。
+
+初回は `venv` の作成と依存関係の取得に時間がかかります。完了後、画像フォルダと Anima Base Model / VAE / Qwen3 の各パスを GUI で指定し、「LoRA学習開始」を押します。フォルダ選択ダイアログが使えないヘッドレス環境ではパスを直接入力できます。
 
 ## 🚀 How to Use
-1. Download: Download Anima-LoRA-Factory-v*.zip.
-1. Launch: Double-click start.bat.
-1. Initialization: The terminal will automatically setup the environment. The GUI will open in your browser once ready.
-1. Start Training: Set your dataset path, configure model paths, and click "Start Training"!
+
+On Ubuntu or macOS, run `chmod +x start.sh && ./start.sh`. On Windows, double-click `start.bat`. The launcher creates an isolated environment, installs the platform-specific PyTorch build and dependencies, then opens the browser GUI. Set the dataset, base model, VAE, Qwen3, and output paths and click **Start Training**.
 
 ---
 

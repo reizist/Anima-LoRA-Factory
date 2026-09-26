@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anima LoRA Factory</title>
+    <link rel="icon" href="assets/favicon.ico">
+    <link rel="stylesheet" href="style.css?v=5.1.0">
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div>
+            <h1>Anima LoRA Factory</h1>
+            <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 0.2rem 0;">
+                Created by <a href="https://fukachan.jp/" target="_blank"
+                    style="color: var(--accent-blue); text-decoration: none; font-weight: 600;">fukachan.jp</a>
+            </p>
+            <p style="font-size: 0.75rem; color: var(--text-secondary);">v5.1</p>
+        </div>
+
+        <nav>
+            <div class="nav-item active" data-tab="dataset">
+                <span class="step-chip">Step 1</span>
+                <div class="nav-label">
+                    <span>📁</span> <span class="txt-dataset">データセット準備<br><small>Dataset Prep</small></span>
+                </div>
+            </div>
+            <div class="nav-item" data-tab="tagger">
+                <span class="step-chip">Step 2</span>
+                <div class="nav-label">
+                    <span>🏷️</span> <span class="txt-tagger">タグ編集<br><small>Tag Editor</small></span>
+                </div>
+            </div>
+            <div class="nav-item" data-tab="config">
+                <span class="step-chip">Step 3</span>
+                <div class="nav-label">
+                    <span>⚙️</span> <span class="txt-config">学習設定<br><small>Configuration</small></span>
+                </div>
+            </div>
+            <div class="nav-item" data-tab="train">
+                <span class="step-chip">Step 4</span>
+                <div class="nav-label">
+                    <span>🚀</span> <span class="txt-train">トレーニング実行<br><small>Execution</small></span>
+                </div>
+            </div>
+            <div class="sidebar-history">
+                <button class="history-button" onclick="openTrainingHistory()">📜 学習履歴<br><small>Training History</small></button>
+            </div>
+        </nav>
+</aside>
+
+    <main class="main-content">
+
+
+        <!-- Dataset Tab -->
+        <section id="tab-dataset" class="tab-content">
+            <h2 class="txt-dataset">データセット準備 / Dataset Prep</h2>
+
+            <div class="card">
+                <h3 style="margin-bottom: 1rem;">💡 画像素材のヒント / Material Tips</h3>
+                <div class="hint-box">
+                    <strong>💡 キャラクター学習のコツ (Character LoRA):</strong><br>
+                    衣装や背景が異なる高品質な画像を15〜30枚程度用意しましょう。<br>
+                    <span class="lang-en"
+                        style="display: block; color: var(--text-secondary); margin-top: 0.5rem; font-style: italic;">Tip:
+                        Prepare 15-30 high-quality images with diverse poses and backgrounds.</span>
+                </div>
+                <div class="hint-box">
+                    <strong>💡 解像度について (Resolution):</strong><br>
+                    Animaモデルは1024x1024前後での学習を推奨しています。アスペクト比はバラバラでも自動調整されます。<br>
+                    <span class="lang-en"
+                        style="display: block; color: var(--text-secondary); margin-top: 0.5rem; font-style: italic;">Resolution:
+                        1024x1024 is recommended. Various aspect ratios are supported via buckets.</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="form-group">
+                    <label>画像フォルダのパス (Dataset Path)</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="dataset-path" placeholder="/path/to/your/images">
+                        <button class="btn btn-secondary"
+                            style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white;"
+                            onclick="browseFolder()">参照 (Browse)</button>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="validatePath()">次へ進む / Next Step</button>
+            </div>
+        </section>
+
+        <!-- Tagger Tab -->
+        <section id="tab-tagger" class="tab-content" style="display: none;">
+            <h2 class="txt-tagger">ビジュアルタグエディタ / Visual Tag Editor</h2>
+            <div class="card" style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                <p style="color: var(--text-secondary); flex: 1; font-size: 0.85rem;">
+                    タグを色分けして表示しています。クリックで削除、末尾の入力欄から追加できます。<br>(Tags are color-coded. Click to remove, use input at the
+                    end to add.)</p>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary"
+                        style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white;"
+                        onclick="refreshDataset()" title="フォルダ内のタグファイルを読み直します / Reload tags from folder">🔄 再読み込み /
+                        Refresh</button>
+                    <button id="run-tagger-btn" class="btn btn-primary" onclick="runAutoTagging()"
+                        title="AIによる自動タグ付けを開始します / Start AI auto-tagging">自動タグ付け実行 / Run Tagger</button>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 1rem;">
+                <h3 style="margin-bottom: 0.8rem; font-size: 0.9rem;">📦 一括編集ツール / Batch Edit Tools</h3>
+                <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+                    <div style="flex: 1;">
+                        <label
+                            style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">カンマ区切りでタグを入力
+                            (Tags, comma separated)</label>
+                        <input type="text" id="batch-tags-input" list="tag-suggestions"
+                            placeholder="1girl, masterpiece, @my_char" style="margin: 0;">
+                        <datalist id="tag-suggestions"></datalist>
+                    </div>
+                    <button class="btn btn-secondary"
+                        style="background: rgba(96, 165, 250, 0.1); border: 1px solid #60a5fa; color: #60a5fa;"
+                        onclick="batchAddTags()">一括追加 / Add</button>
+                    <button class="btn btn-secondary"
+                        style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; color: #22c55e;"
+                        onclick="batchAddTriggerWords()">トリガーワード追加 / Trigger</button>
+                    <button class="btn btn-secondary"
+                        style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #ef4444;"
+                        onclick="batchRemoveTags()">一括削除 / Remove</button>
+                </div>
+            </div>
+
+            <div class="card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1rem;">
+                <div>
+                    <h3 style="margin-bottom: 0.8rem; font-size: 0.9rem;">🛠️ ボタンの機能 / Functions</h3>
+                    <p style="font-size: 0.8rem; margin-bottom: 0.5rem; color: var(--text-secondary);"><strong>🔄 再読み込み
+                            / Refresh:</strong> フォルダ内の .txt ファイルを読み直し、最新の状態を表示します。</p>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary);"><strong>🚀 自動タグ付け実行 / Auto-Tag:</strong>
+                        AIが画像の内容を分析し、タグを自動生成します。<br>(AI analyzes images and generates tags.)</p>
+                </div>
+                <div>
+                    <h3 style="margin-bottom: 0.8rem; font-size: 0.9rem;">💡 タグ編集の基本ルール / Rules</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">
+                        LoRAに<strong>「学習させたい特徴」のタグを削除する</strong>のが基本です。削除した特徴がトリガーワードに集約されます。<br>
+                        @付きでトリガーワードを設定すると、学習履歴にも保存されます。<br>
+                        (Remove tags of features you want to train; they will merge into the trigger word. Trigger words that start with @ are also saved in the training history.)
+                    </p>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 1rem; font-size: 0.9rem;">📖 LoRAタイプ別・編集のコツ / Editing Tips</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div class="hint-box"
+                        style="margin: 0; padding: 0.75rem; background: rgba(244, 114, 182, 0.05); border-color: #f472b6; font-size: 0.75rem;">
+                        <strong>👤 キャラクターLoRA / Character:</strong><br>
+                        髪色、目の色、固有の服などのタグを削除します。<br>
+                        (Remove hair, eyes, unique clothes etc.)
+                    </div>
+                    <div class="hint-box"
+                        style="margin: 0; padding: 0.75rem; background: rgba(52, 211, 153, 0.05); border-color: #34d499; font-size: 0.75rem;">
+                        <strong>🎨 スタイルLoRA / Style:</strong><br>
+                        具体的な物のタグは残し、品質タグを削除します。<br>
+                        (Keep object tags, remove quality tags like masterpiece.)
+                    </div>
+                    <div class="hint-box"
+                        style="margin: 0; padding: 0.75rem; background: rgba(96, 165, 250, 0.05); border-color: #60a5fa; font-size: 0.75rem;">
+                        <strong>👗 衣装LoRA / Clothing:</strong><br>
+                        その衣装を示すタグのみを削除します。<br>
+                        (Remove only the tags specific to the outfit.)
+                    </div>
+                </div>
+            </div>
+
+            <div id="tagger-progress-container" class="card" style="display: none; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span id="tagger-progress-text">タグ付け進捗 (Tagging Progress): 0 / 0</span>
+                    <span id="tagger-progress-percent">0%</span>
+                </div>
+                <div
+                    style="width: 100%; background: rgba(255,255,255,0.1); border-radius: 0.25rem; height: 1rem; overflow: hidden;">
+                    <div id="tagger-progress-bar"
+                        style="width: 0%; height: 100%; background: var(--primary-color); transition: width 0.3s ease;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="tag-editor-grid" id="tag-editor-content">
+                <!-- Example Card -->
+                <div class="card image-tag-card placeholder-card">
+                    <div class="tag-preview-img"
+                        style="background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: var(--text-secondary); text-align: center;">
+                        サンプル表示<br>(Sample)</div>
+                    <div class="tags-container">
+                        <span class="tag-chip tag-meta">masterpiece <span class="remove-btn">×</span></span>
+                        <span class="tag-chip tag-char">1girl <span class="remove-btn">×</span></span>
+                        <span class="tag-chip tag-char">@original_character <span class="remove-btn">×</span></span>
+                        <span class="tag-chip tag-clothes">school uniform <span class="remove-btn">×</span></span>
+                        <span class="tag-chip tag-bg">classroom <span class="remove-btn">×</span></span>
+                        <span class="tag-chip tag-general">smile <span class="remove-btn">×</span></span>
+                        <input type="text" class="add-tag-input" placeholder="+ Add">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Config Tab -->
+        <section id="tab-config" class="tab-content" style="display: none;">
+            <h2 class="txt-config">学習設定 / Configuration</h2>
+
+            <!-- GPU Info Card -->
+            <div class="card" style="display: flex; align-items: center; gap: 1rem; padding: 1rem 1.5rem;">
+                <span style="font-size: 1.5rem;">🖥️</span>
+                <div style="flex: 1;">
+                    <h4 style="margin-bottom: 0.2rem; color: var(--text-secondary); font-size: 0.8rem;">GPU情報 (GPU Info)
+                    </h4>
+                    <div id="gpu-info-display" style="font-weight: 600; color: var(--accent-blue);">情報を取得中...</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="form-group">
+                    <label>Animaベースモデルのパス / Anima Base Model Path (.safetensors)</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="model-path" placeholder="/path/to/anima-base-v1.0.safetensors">
+                        <button class="btn btn-secondary"
+                            style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white;"
+                            onclick="browseFile('model-path', 'Select Base Model')">参照 / Browse</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>VAEのパス / VAE Path (.safetensors)</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="vae-path" placeholder="/path/to/qwen_image_vae.safetensors">
+                        <button class="btn btn-secondary"
+                            style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white;"
+                            onclick="browseFile('vae-path', 'Select VAE')">参照 / Browse</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Qwen3テキストエンコーダーのパス / Qwen3 Text Encoder Path</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="qwen-path" placeholder="/path/to/qwen_3_06b_base.safetensors">
+                        <button class="btn btn-secondary"
+                            style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white;"
+                            onclick="browseFile('qwen-path', 'Select Qwen3')">参照 / Browse</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>出力先フォルダ / Output Directory</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="output-dir" placeholder="/path/to/output">
+                        <button class="btn btn-secondary"
+                            style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white;"
+                            onclick="browseOutput()">参照 / Browse</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>LoRA名称 / Output Name</label>
+                    <input type="text" id="output-name" value="my_anima_lora">
+                </div>
+                <div class="form-group">
+                    <label>学習回数 / Epochs</label>
+                    <input type="number" id="epochs" value="10">
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.4rem; line-height: 1.4;">
+                        画像を何周学習させるか。15枚程度の画像なら10〜20、30枚以上なら5〜10程度が目安です。<br>
+                        (Number of times to train on images. Recommend 10-20 for 15 images, 5-10 for 30+ images.)
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label>繰り返し回数 / Repeats</label>
+                    <input type="number" id="repeats" value="2" min="1">
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.4rem; line-height: 1.4;">
+                        1エポック内で各画像を何回繰り返すか。少ない画像では大きめ、多い画像では小さめに調整してください。<br>
+                        (Number of repeats per image within each epoch. Use higher values for smaller datasets.)
+                    </p>
+                </div>
+                <div class="training-strength-box">
+                    <div class="training-strength-header">
+                        <span>学習の強さ</span>
+                        <strong id="estimated-steps">推定: -- steps</strong>
+                    </div>
+                    <p>
+                        学習の強さは、基本的に「総ステップ数」で決まります。ステップ数が多いほどキャラクターを強く覚えますが、服・絵柄・ポーズも固定されやすくなります。
+                    </p>
+                    <p>
+                        総ステップ数は、だいたい <strong>画像枚数 × Repeats × Epochs</strong> で決まります。
+                    </p>
+                    <div class="step-estimate" id="step-estimate-detail">画像枚数を読み込むと推定ステップ数を表示します。</div>
+                    <ul>
+                        <li><strong>500〜800:</strong> 軽め。まず試す時におすすめ</li>
+                        <li><strong>1000〜1500:</strong> 標準。キャラをしっかり覚えたい時</li>
+                        <li><strong>2000〜3000:</strong> 強め。服や絵柄も残りやすい</li>
+                        <li><strong>3000以上:</strong> かなり強め。慣れてからがおすすめ</li>
+                    </ul>
+                    <p class="step-guidance">よく分からない場合は、まず 1000〜1500 ステップ前後を目安にしてください。</p>
+                </div>
+                <div class="form-group">
+                    <label>オプティマイザー / Optimizer</label>
+                    <select id="optimizer-type" onchange="toggleOptimizerSettings()">
+                        <option value="AdamW" selected>AdamW（標準・初心者向け / Default）</option>
+                        <option value="Prodigy">Prodigy（学習率自動調整 / Auto LR）</option>
+                        <option value="DAdaptAdam">DAdaptation - DAdaptAdam（学習率自動調整 / Auto LR）</option>
+                    </select>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.4rem; line-height: 1.4;">
+                        AdamWは学習率を自分で調整する必要があります。Prodigy / DAdaptationは学習率を自動調整してくれますが、VRAM消費がやや増え、対応パッケージのインストールが必要です。<br>
+                        (AdamW requires manual LR tuning. Prodigy/DAdaptation auto-tune LR, but use slightly more VRAM and require extra packages — run "Repair Environment" below after switching.)
+                    </p>
+                </div>
+
+                <div class="form-group" id="optimizer-low-vram-section" style="display: none;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="optimizer-low-vram" style="width: auto; margin: 0;">
+                        <span>Prodigy/DAdaptation使用時に低VRAM対策を強化する（blocks_to_swapを追加） / Extra low-VRAM offset for Prodigy/DAdaptation</span>
+                    </label>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.4rem; line-height: 1.4;">
+                        Prodigy/DAdaptationはAdamWより多くのVRAMを使うため、VRAM不足が出る場合はこちらを有効にしてください。学習はやや遅くなります。<br>
+                        (Prodigy/DAdaptation use more VRAM than AdamW. Enable this if you hit out-of-memory errors. Training will be a bit slower.)
+                    </p>
+                </div>
+
+                <div class="form-group" id="lr-adamw-section">
+                    <label>学習率 / Learning Rate</label>
+                    <div
+                        style="display: flex; flex-direction: column; gap: 0.5rem; background: rgba(255,255,255,0.02); padding: 0.8rem; border-radius: 0.5rem; border: 1px solid var(--glass-border);">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;"
+                            title="（サクッと学習）">
+                            <input type="radio" name="learning-rate" value="1e-4" checked
+                                style="width: auto; margin: 0;">
+                            <span>1e-4 <span
+                                    style="color: var(--text-secondary); font-size: 0.85rem;">（サクッと学習）</span></span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;"
+                            title="（バランス重視）">
+                            <input type="radio" name="learning-rate" value="5e-5" style="width: auto; margin: 0;">
+                            <span>5e-5 <span
+                                    style="color: var(--text-secondary); font-size: 0.85rem;">（バランス重視）</span></span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;"
+                            title="（じっくり学習、高精度）">
+                            <input type="radio" name="learning-rate" value="2e-5" style="width: auto; margin: 0;">
+                            <span>2e-5 <span
+                                    style="color: var(--text-secondary); font-size: 0.85rem;">（じっくり学習、高精度）</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group" id="lr-prodigy-section" style="display: none;">
+                    <label>学習率 / Learning Rate（Prodigy / DAdaptation用）</label>
+                    <div
+                        style="display: flex; flex-direction: column; gap: 0.5rem; background: rgba(255,255,255,0.02); padding: 0.8rem; border-radius: 0.5rem; border: 1px solid var(--glass-border);">
+                        <input type="number" id="prodigy-lr" value="1.0" step="0.1" min="0.01">
+                        <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+                            Prodigy / DAdaptationは学習率を自動計算するため、AdamWのような小さい値ではなく<strong>1.0前後</strong>を推奨します。0.0001のような値を入れると学習がほとんど進みません。<br>
+                            (Prodigy/DAdaptation auto-compute the effective LR, so use a value around <strong>1.0</strong> instead of AdamW-style small values. A value like 0.0001 will barely train at all.)
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>VRAM節約モード / VRAM Optimization</label>
+                    <select id="vram-mode">
+                        <option value="high">高画質 / High Quality (VRAM 24GB+)</option>
+                        <option value="balanced" selected>バランス / Balanced (VRAM 12-16GB)</option>
+                        <option value="low">低容量 / Low VRAM (VRAM 8GB+)</option>
+                    </select>
+                </div>
+                <div class="hint-box">
+                    <strong>💡 初心者へのアドバイス / Advice:</strong><br>
+                    基本的には「バランス」設定で問題ありません。エラーが出る場合は「低容量」を試してください。<br>
+                    (Balanced is usually fine. If you get errors, try Low VRAM mode.)
+                </div>
+
+                <div class="form-group"
+                    style="margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                    <label
+                        style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 0.85rem;">
+                        <input type="checkbox" id="enable-advanced" style="width: auto; margin: 0;"
+                            onchange="toggleAdvancedSettings()">
+                        <span>上級設定（意味がわからない場合は変更しないでください） / Advanced Settings</span>
+                    </label>
+                    <div id="advanced-settings-container"
+                        style="display: none; flex-direction: column; margin-top: 1rem; gap: 1rem; background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--glass-border);">
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 0.8rem;">ランク (network_dim)</label>
+                                <input type="number" id="lora-rank" value="16" min="1" max="128" style="margin-top: 0.3rem;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 0.8rem;">アルファ (network_alpha)</label>
+                                <input type="number" id="lora-alpha" value="16" min="1" max="128"
+                                    style="margin-top: 0.3rem;">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.8rem;">DataLoader Workers</label>
+                            <input type="number" id="dataloader-workers" value="0" min="0" max="8" step="1" style="margin-top: 0.3rem;">
+                            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.4rem; line-height: 1.4;">
+                                画像読み込みの並列数です。0が最も安定します。学習開始時に止まる場合は0のまま、速度を重視する上級者のみ2〜8に増やしてください。旧バージョンで問題なく使えていた人は8で従来通りの設定になります。<br>
+                                (Number of parallel image loading workers. 0 is the most stable. Advanced users can raise it to 2-8 for speed.)
+                            </p>
+                        </div>
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.8rem;">
+                                <input type="checkbox" id="flip-aug" style="width: auto; margin: 0;">
+                                <span>左右反転 augmentation / Horizontal Flip Augmentation</span>
+                            </label>
+                            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.4rem; line-height: 1.4;">
+                                学習中に画像を50%の確率で左右反転します。左右非対称なキャラクター、文字、ロゴ、片目・片側だけの特徴を学習する場合はOFFを推奨します。<br>
+                                (Randomly flips images horizontally during training. Leave it off for asymmetric characters, text, logos, or one-sided details.)
+                            </p>
+                        </div>
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.8rem;">
+                                <input type="checkbox" id="shuffle-caption" style="width: auto; margin: 0;">
+                                <span>タグ順シャッフル / Shuffle Caption</span>
+                            </label>
+                            <div style="display: flex; gap: 1rem; align-items: flex-start; margin-top: 0.5rem;">
+                                <div style="width: 9rem;">
+                                    <label style="font-size: 0.75rem;">固定タグ数 (keep_tokens)</label>
+                                    <input type="number" id="keep-tokens" value="1" min="0" max="20" style="margin-top: 0.3rem;" disabled>
+                                </div>
+                                <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 0; line-height: 1.4; flex: 1;">
+                                    ONにするとタグ順を毎回入れ替えます。先頭のトリガーワードを守りたい場合は keep_tokens を1以上にします。<br>
+                                    (Shuffles tag order during training. keep_tokens keeps the first tags fixed, usually for trigger words.)
+                                </p>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.8rem;">
+                                <input type="checkbox" id="min-snr-gamma" style="width: auto; margin: 0;">
+                                <span>Min SNR Gammaを使う / Use Min SNR Gamma</span>
+                            </label>
+                            <div style="width: 9rem; margin-top: 0.5rem;">
+                                <label style="font-size: 0.75rem;">値 (gamma)</label>
+                                <input type="number" id="min-snr-gamma-value" value="5" min="0" step="0.1" style="margin-top: 0.3rem;" disabled>
+                            </div>
+                            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.4rem; line-height: 1.4;">
+                                ONにすると --min_snr_gamma を追加します。推奨値は5です。学習のバランスを整え、過学習感を少し抑えることがあります。<br>
+                                (Adds --min_snr_gamma. Recommended value is 5. It can improve training balance and sometimes reduce overfitting.)
+                            </p>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.8rem;">オプティマイザー追加引数 / Optimizer Args</label>
+                            <input type="text" id="optimizer-args" autocomplete="off" style="margin-top: 0.3rem;">
+                            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.4rem; line-height: 1.4;">
+                                --optimizer_args に渡す追加パラメータです。スペース区切りで key=value の形式で入力してください。わからない場合は空欄で構いません。<br>
+                                (Extra parameters passed to --optimizer_args, space-separated key=value pairs. Leave blank if unsure.)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Repair Section -->
+                <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px dashed var(--glass-border);">
+                    <h4 style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">🛠️ トラブルシューティング (Troubleshooting)</h4>
+                    <button id="setup-scripts-btn" class="btn btn-secondary" style="font-size: 0.75rem; width: 100%;"
+                        onclick="setupScripts()">学習環境の再構築 (環境を修復する) / Repair Environment</button>
+                    <p id="setup-progress-text" style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.4rem; display: none; text-align: center;">
+                        ⏳ 修復中です。しばらくお待ちください... / Repairing, please wait...
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Train Tab -->
+        <section id="tab-train" class="tab-content" style="display: none;">
+            <h2 class="txt-train">トレーニング実行 / Execution</h2>
+            <div class="card">
+                <div id="console-output"
+                    style="background: black; padding: 1rem; border-radius: 0.5rem; height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; color: #10b981;">
+                    待機中... (Waiting to start)
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1rem;">
+                    <button class="btn btn-primary" id="start-train-btn"
+                        style="width: 100%; font-weight: bold; font-size: 1.1rem; padding: 1rem;"
+                        onclick="startTraining()">
+                        🚀 LoRA学習開始 / Start Training
+                    </button>
+
+                    <div
+                        style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 8px; display: flex; flex-direction: column; gap: 0.6rem;">
+                        <label
+                            style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 0.85rem; user-select: none;">
+                            <input type="checkbox" id="keep-unet" style="width: auto;">
+                            <span>UNET版モデル（中間ファイル）を削除せずに残す / Keep UNET file</span>
+                        </label>
+                        <label
+                            style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 0.85rem; user-select: none;">
+                            <input type="checkbox" id="auto-shutdown" style="width: auto;">
+                            <span>トレーニング完了後にPCをシャットダウンする / Shutdown after completion</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+
+    <div id="history-modal" class="history-modal" aria-hidden="true">
+        <div class="history-panel" role="dialog" aria-modal="true" aria-labelledby="history-title">
+            <div class="history-panel-header">
+                <div>
+                    <h2 id="history-title">学習履歴 / Training History</h2>
+                    <p>最新30件の素材フォルダと学習設定を表示します。</p>
+                </div>
+                <button class="history-close" onclick="closeTrainingHistory()" aria-label="Close history">×</button>
+            </div>
+            <div id="history-content" class="history-content">
+                <p class="history-empty">履歴を読み込み中です...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=5.1.0"></script>
+</body>
+
+</html>
+
+
+
+
+
+
+
